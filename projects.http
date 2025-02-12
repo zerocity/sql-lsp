@@ -1,0 +1,4 @@
+@GITLAB_TOKEN
+GET https://gitlab.com/api/v4/projects
+Authorization: Bearer {{GITLAB_TOKEN}}
+

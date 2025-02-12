@@ -1,67 +1,56 @@
-use std::path::PathBuf;
-
 use clap::{Parser, Subcommand};
+use serde_json;
+
+mod project;
+use project::Project;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
 struct Cli {
-    /// Optional name to operate on
-    name: Option<String>,
-
-    /// Sets a custom config file
-    #[arg(short, long, value_name = "FILE")]
-    config: Option<PathBuf>,
-
-    /// Turn debugging information on
-    #[arg(short, long, action = clap::ArgAction::Count)]
-    debug: u8,
-
     #[command(subcommand)]
     command: Option<Commands>,
 }
 
 #[derive(Subcommand)]
 enum Commands {
-    /// does testing things
-    Test {
-        /// lists test values
-        #[arg(short, long)]
-        list: bool,
-    },
+    Login,
 }
 
-fn main() {
+#[tokio::main]
+async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
 
-    // You can check the value provided by positional arguments, or option arguments
-    if let Some(name) = cli.name.as_deref() {
-        println!("Value for name: {name}");
-    }
+    //
+    // from env
+    //
+    let token = std::env::var("GITLAB_TOKEN").expect("Could not find GITLAB_TOKEN in env");
 
-    if let Some(config_path) = cli.config.as_deref() {
-        println!("Value for config: {}", config_path.display());
-    }
-
-    // You can see how many times a particular flag or argument occurred
-    // Note, only flags can have multiple occurrences
-    match cli.debug {
-        0 => println!("Debug mode is off"),
-        1 => println!("Debug mode is kind of on"),
-        2 => println!("Debug mode is on"),
-        _ => println!("Don't be crazy"),
-    }
-
-    // You can check for the existence of subcommands, and if found use their
-    // matches just as you would the top level cmd
     match &cli.command {
-        Some(Commands::Test { list }) => {
-            if *list {
-                println!("Printing testing lists...");
-            } else {
-                println!("Not printing testing lists...");
+        Some(Commands::Login) => {
+            let client = reqwest::Client::new();
+            let result = client
+                .get("https://gitlab.com/api/v4/projects")
+                .header("Authorization", format!("Bearer {token}"))
+                .send()
+                .await?
+                .text()
+                .await?;
+
+            // dbg!(&result);
+
+            let a = serde_json::from_str::<Vec<Project>>(&result);
+            match a {
+                Ok(a) => {
+                    println!("Length --->{:#?}", a.len());
+                }
+                Err(e) => {
+                    println!("--->{:#?}", e);
+                }
             }
+
+            Ok(())
         }
-        None => {}
+        None => Ok(()),
     }
 
     // Continued program logic goes here...

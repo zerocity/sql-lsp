@@ -1,2 +1,6 @@
 [tools]
 rust = "latest"
+
+[tasks.start]
+description = "List all projects"
+run = "cargo run -- login"

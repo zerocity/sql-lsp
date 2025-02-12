@@ -2,11 +2,14 @@ use clap::{Parser, Subcommand};
 use gitlab::{
     api::{
         self,
+        groups::issues::Issues,
         users::{CurrentUser, UserProjects, Users},
         Query,
     },
     Gitlab,
 };
+
+mod response_types;
 
 use serde::Deserialize;
 
@@ -46,14 +49,21 @@ fn main() {
     match &cli.command {
         Some(Commands::Login) => {
             let client = Gitlab::new("gitlab.com", token).expect("Gitlab client");
-            let user: User = CurrentUser::builder()
+            let user: response_types::GitLabUser = CurrentUser::builder()
                 .build()
                 .unwrap()
                 .query(&client)
                 .unwrap();
 
-            let user_project: Vec<UserProject> = UserProjects::builder()
+            let user_project: Vec<response_types::GitLabProject> = UserProjects::builder()
                 .user(user.id)
+                .build()
+                .unwrap()
+                .query(&client)
+                .unwrap();
+
+            let issues: Vec<response_types::GitLabIssue> = Issues::builder()
+                .assignee_id(user.id)
                 .build()
                 .unwrap()
                 .query(&client)
@@ -64,6 +74,7 @@ fn main() {
 
             dbg!(&user);
             dbg!(&user_project);
+            dbg!(&issues);
         }
         None => (),
     }

@@ -5,5 +5,9 @@ _.file = '.env'
 rust = "latest"
 
 [tasks.start]
-description = "List all projects"
+description = "Login user"
 run = "cargo run -- login"
+[tasks.projects]
+alias = "p"
+description = "List all projects"
+run = "cargo run -- project"

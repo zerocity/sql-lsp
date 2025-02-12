@@ -2,3 +2,22 @@
 GET https://gitlab.com/api/v4/projects
 Authorization: Bearer {{GITLAB_TOKEN}}
 
+
+##
+@GITLAB_TOKEN
+GET https://gitlab.com/api/v4/issues?assignee_id=4500276
+Authorization: Bearer {{GITLAB_TOKEN}}
+
+
+##
+@GITLAB_TOKEN
+POST https://gitlab.com/api/v4/projects/13951944/issues
+Authorization: Bearer {{GITLAB_TOKEN}}
+Content-Type: application/json
+
+
+{
+  "title": "New issue",
+  "description": "This is a new issue",
+  "assignee_id": 4500276
+}

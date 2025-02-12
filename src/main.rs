@@ -1,8 +1,14 @@
 use clap::{Parser, Subcommand};
-use serde_json;
+use gitlab::{
+    api::{
+        self,
+        users::{CurrentUser, UserProjects, Users},
+        Query,
+    },
+    Gitlab,
+};
 
-mod project;
-use project::Project;
+use serde::Deserialize;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -16,8 +22,20 @@ enum Commands {
     Login,
 }
 
-#[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+// The return type of a `Project`. Note that GitLab may contain more information, but you can
+// define your structure to only fetch what is needed.
+#[derive(Debug, Deserialize)]
+struct User {
+    id: u64,
+    username: String,
+}
+
+#[derive(Debug, Deserialize)]
+struct UserProject {
+    name: String,
+}
+
+fn main() {
     let cli = Cli::parse();
 
     //
@@ -27,31 +45,26 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     match &cli.command {
         Some(Commands::Login) => {
-            let client = reqwest::Client::new();
-            let result = client
-                .get("https://gitlab.com/api/v4/projects")
-                .header("Authorization", format!("Bearer {token}"))
-                .send()
-                .await?
-                .text()
-                .await?;
+            let client = Gitlab::new("gitlab.com", token).expect("Gitlab client");
+            let user: User = CurrentUser::builder()
+                .build()
+                .unwrap()
+                .query(&client)
+                .unwrap();
 
-            // dbg!(&result);
+            let user_project: Vec<UserProject> = UserProjects::builder()
+                .user(user.id)
+                .build()
+                .unwrap()
+                .query(&client)
+                .unwrap();
 
-            let a = serde_json::from_str::<Vec<Project>>(&result);
-            match a {
-                Ok(a) => {
-                    println!("Length --->{:#?}", a.len());
-                }
-                Err(e) => {
-                    println!("--->{:#?}", e);
-                }
-            }
+            // let raw_data: Vec<u8> = api::raw(&b).query(&client).unwrap();
+            // let raw = String::from_utf8(raw_data).unwrap(); // raw_data.into();
 
-            Ok(())
+            dbg!(&user);
+            dbg!(&user_project);
         }
-        None => Ok(()),
+        None => (),
     }
-
-    // Continued program logic goes here...
 }

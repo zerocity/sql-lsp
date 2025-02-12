@@ -34,6 +34,12 @@ Authorization: Bearer {{GITLAB_TOKEN}}
 
 ##
 @GITLAB_TOKEN
+GET https://gitlab.com/api/v4/issues?membership=true
+Authorization: Bearer {{GITLAB_TOKEN}}
+
+
+##
+@GITLAB_TOKEN
 POST https://gitlab.com/api/v4/projects/13951944/issues
 Authorization: Bearer {{GITLAB_TOKEN}}
 Content-Type: application/json

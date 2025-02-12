@@ -2,6 +2,29 @@
 GET https://gitlab.com/api/v4/projects
 Authorization: Bearer {{GITLAB_TOKEN}}
 
+##
+@GITLAB_TOKEN
+GET https://gitlab.com/api/v4/user
+Authorization: Bearer {{GITLAB_TOKEN}}
+
+##
+## 
+##
+@GITLAB_TOKEN
+GET https://gitlab.com/api/v4/users/4500276/projects
+Authorization: Bearer {{GITLAB_TOKEN}}
+
+##
+## GET all projects that the authenticated user is a member of
+##
+@GITLAB_TOKEN
+GET https://gitlab.com/api/v4/projects?membership=true
+Authorization: Bearer {{GITLAB_TOKEN}}
+
+##
+@GITLAB_TOKEN
+GET https://gitlab.com/api/v4/users/projects
+Authorization: Bearer {{GITLAB_TOKEN}}
 
 ##
 @GITLAB_TOKEN

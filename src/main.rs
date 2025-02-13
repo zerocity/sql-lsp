@@ -1,14 +1,16 @@
+use anyhow::Context;
+use derive_builder::Builder;
+
+use crate::commands::RenderList;
 use clap::{Parser, Subcommand};
 use edit;
 use json_to_table::json_to_table;
 use serde::Serialize;
 use serde_json::json;
-use crate::commands::RenderList;
 
 pub mod commands;
 pub mod response_types;
 pub mod utils;
-
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -35,24 +37,27 @@ enum Commands {
     Tickets,
 }
 
-#[derive(Debug)]
+#[derive(Default, Builder, Debug)]
+#[builder(setter(into))]
 pub struct App {
     pub gitlab_url: String,
     pub gitlab_token: String,
 }
 
 impl App {
-    pub fn render(&self, to_be_rendered: impl Serialize, amount: usize) -> Result<String, serde_json::Error> {
-        let table = json_to_table(&json!(&to_be_rendered)).collapse().to_string();
-        let amount = format!(
-            "\n-------------------------\nTotal Entries: {}",
-            &amount
-        );
+    pub fn render(
+        &self,
+        to_be_rendered: impl Serialize,
+        amount: usize,
+    ) -> Result<String, serde_json::Error> {
+        let table = json_to_table(&json!(&to_be_rendered))
+            .collapse()
+            .to_string();
+        let amount = format!("\n-------------------------\nTotal Entries: {}", &amount);
 
         Ok(format!("{table}{amount}"))
     }
 }
-
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -62,13 +67,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // from env
     //
     let token = std::env::var("GITLAB_TOKEN").expect("Could not find GITLAB_TOKEN in env");
-    let url = "https://gitlab.com/api/v4".to_string();
 
-    let app = App {
-        gitlab_url: url.clone(),
-        gitlab_token: token.clone()
-    };
-
+    let app = AppBuilder::default()
+        .gitlab_token(token.clone())
+        .gitlab_url(utils::get_gitlab_api_url()?)
+        .build()
+        .with_context(|| "Could not initialize app")?;
 
     if let Some(cmd) = cli.command {
         match &cmd {
@@ -81,8 +85,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(())
             }
             Commands::Create => {
-                let git_url = utils::get_git_url()?;
-                dbg!(git_url);
+                dbg!(app);
                 //
                 //
                 //
@@ -106,17 +109,20 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                     String::new()
                 };
 
-                let (new_title, new_content) = commands::tickets::extract_title_and_content(content)?;
+                let (new_title, new_content) =
+                    commands::tickets::extract_title_and_content(content)?;
 
                 let issue_command = commands::tickets::TicketsCommand::new(app);
-                issue_command.create_issue(
-                    *project_id,
-                    commands::tickets::CreateIssue {
-                        assignee_id: *assignee_id,
-                        title: new_title.to_string(),
-                        description: new_content.clone(),
-                    }
-                ).await?;
+                issue_command
+                    .create_issue(
+                        *project_id,
+                        commands::tickets::CreateIssue {
+                            assignee_id: *assignee_id,
+                            title: new_title.to_string(),
+                            description: new_content.clone(),
+                        },
+                    )
+                    .await?;
 
                 Ok(())
             }

@@ -24,3 +24,14 @@ pub fn get_git_url() -> Result<GitUrl> {
     let origin_url = origin_url.to_string();
     GitUrl::parse(&origin_url).with_context(|| format!("Could not parse git url: {}", origin_url))
 }
+
+pub fn get_gitlab_api_url() -> Result<String> {
+    let git_url = get_git_url()?;
+    let host = git_url.host.unwrap_or("gitlab.com".to_string());
+
+    if host == "github.com" {
+        return Err(anyhow!("This is a github repository"));
+    }
+
+    Ok(format!("https://{}/api/v4", host))
+}

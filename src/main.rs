@@ -65,7 +65,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
             Commands::CreateTicket { project_id, assignee_id, title, description } => {
                 let content = if title.is_none() || description.is_none() {
-                    edit::edit("Demo ticket title").unwrap_or_else(|_| String::new())
+                    edit::edit(title.clone().unwrap_or_else(|| "".to_string())).unwrap_or_else(|_| String::new())
                 } else { String::new() };
 
                 let (new_title, new_content) = extract_title_and_content(content)?;

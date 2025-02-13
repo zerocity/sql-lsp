@@ -1,17 +1,25 @@
 use json_to_table::json_to_table;
 use serde::Serialize;
-use serde_json::json;
+use serde_json::{json, Error};
 use crate::{response_types, utils, App};
+use crate::commands::RenderList;
 
 pub struct TicketsCommand {
     app: App
 }
 
 #[derive(Serialize)]
-pub(crate) struct CreateIssue {
+pub struct CreateIssue {
     pub title: String,
     pub description: Option<String>,
     pub assignee_id: u64,
+}
+
+#[derive(Serialize)]
+pub struct TicketList {
+    id: u64,
+    title: String,
+    description: Option<String>
 }
 
 impl TicketsCommand {
@@ -55,6 +63,20 @@ impl TicketsCommand {
         dbg!(&res);
 
         Ok(())
+    }
+}
+
+impl RenderList<Vec<response_types::GitLabIssue>> for TicketsCommand {
+    fn render_list(&self, input: Vec<response_types::GitLabIssue>) -> Result<String, Error> {
+        let ticket_list: Vec<TicketList> = input.iter().map(|p| {
+            TicketList {
+                id: p.id,
+                title: p.title.clone(),
+                description: p.description.clone()
+            }
+        }).collect();
+
+        self.app.render(ticket_list, input.len())
     }
 }
 

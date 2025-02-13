@@ -1,5 +1,3 @@
-use std::error::Error;
-use std::ops::Deref;
 use clap::{Parser, Subcommand};
 use edit;
 use json_to_table::json_to_table;
@@ -25,6 +23,7 @@ struct Cli {
 enum Commands {
     Login,
     Projects,
+    Create,
     CreateTicket {
         #[arg(short, long)]
         project_id: u64,
@@ -35,7 +34,7 @@ enum Commands {
         #[arg(short, long)]
         description: Option<String>,
     },
-    Tickets
+    Tickets,
 }
 
 const URL: &'static str = "https://gitlab.com/api/v4/issues?assignee_id=4500276";
@@ -86,23 +85,36 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 println!("{}", res);
                 Ok(())
             }
+            Commands::Create => {
+                let git_url = utils::get_git_url()?;
+                dbg!(git_url);
+                //
+                //
+                //
+                Ok(())
+            }
             Commands::Login => {
-                let response = utils::client(
-                    URL,
-                    &token,
-                )
-                .send()
-                .await?
-                .json::<Vec<response_types::GitLabIssue>>()
-                .await?;
+                let response = utils::client(URL, &token)
+                    .send()
+                    .await?
+                    .json::<Vec<response_types::GitLabIssue>>()
+                    .await?;
+
                 dbg!(response);
                 return Ok(());
             }
-            Commands::CreateTicket { project_id, assignee_id, title, description } => {
-
+            Commands::CreateTicket {
+                project_id,
+                assignee_id,
+                title,
+                description,
+            } => {
                 let content = if title.is_none() || description.is_none() {
-                    edit::edit(title.clone().unwrap_or_else(|| "".to_string())).unwrap_or_else(|_| String::new())
-                } else { String::new() };
+                    edit::edit(title.clone().unwrap_or_else(|| "".to_string()))
+                        .unwrap_or_else(|_| String::new())
+                } else {
+                    String::new()
+                };
 
                 let (new_title, new_content) = extract_title_and_content(content)?;
 
@@ -117,7 +129,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 ).await?;
 
                 Ok(())
-            },
+            }
             Commands::Tickets => {
                 let issue_command = commands::tickets::TicketsCommand::new(app);
                 issue_command.list_issues().await?;
@@ -130,26 +142,32 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-fn extract_title_and_content(content: String) -> Result<(String, Option<String>), Box<dyn std::error::Error>> {
+fn extract_title_and_content(
+    content: String,
+) -> Result<(String, Option<String>), Box<dyn std::error::Error>> {
     if content.is_empty() {
         return Err("Title and content cannot be parsed".into());
     }
 
     if let Some((title, content)) = content.split_once("\n\n") {
-        return Ok((title.to_string(), Some(content.to_string().trim().to_string())))
+        return Ok((
+            title.to_string(),
+            Some(content.to_string().trim().to_string()),
+        ));
     }
 
     Ok((content, None))
 }
 
-const TITLE_AND_CONTENT_ERROR: &'static str = "Title and content cannot be parsed";
-
 #[cfg(test)]
 mod tests {
+    const TITLE_AND_CONTENT_ERROR: &'static str = "Title and content cannot be parsed";
     use super::*;
     #[test]
     fn throw_error_when_content_was_not_provided() {
-        let a = extract_title_and_content("".to_string()).unwrap_err().to_string();
+        let a = extract_title_and_content("".to_string())
+            .unwrap_err()
+            .to_string();
         assert_eq!(a, TITLE_AND_CONTENT_ERROR);
     }
     #[test]
@@ -159,7 +177,8 @@ mod tests {
     }
     #[test]
     fn extract_content() {
-        let (_title, content) = extract_title_and_content("Demo ticket title\n\nsomething".to_string()).unwrap();
+        let (_title, content) =
+            extract_title_and_content("Demo ticket title\n\nsomething".to_string()).unwrap();
         assert_eq!(content.unwrap(), "something");
     }
 

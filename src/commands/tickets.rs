@@ -57,3 +57,63 @@ impl TicketsCommand {
         Ok(())
     }
 }
+
+
+pub fn extract_title_and_content(
+    content: String,
+) -> Result<(String, Option<String>), Box<dyn std::error::Error>> {
+    if content.is_empty() {
+        return Err("Title and content cannot be parsed".into());
+    }
+
+    if let Some((title, content)) = content.split_once("\n\n") {
+        return Ok((
+            title.to_string(),
+            Some(content.to_string().trim().to_string()),
+        ));
+    }
+
+    Ok((content, None))
+}
+
+
+
+#[cfg(test)]
+mod tests {
+    const TITLE_AND_CONTENT_ERROR: &'static str = "Title and content cannot be parsed";
+    use super::*;
+    #[test]
+    fn throw_error_when_content_was_not_provided() {
+        let a = extract_title_and_content("".to_string())
+            .unwrap_err()
+            .to_string();
+        assert_eq!(a, TITLE_AND_CONTENT_ERROR);
+    }
+    #[test]
+    fn extract_title() {
+        let a = extract_title_and_content("Demo ticket title".to_string()).unwrap();
+        assert_eq!(a.0, "Demo ticket title");
+    }
+    #[test]
+    fn extract_content() {
+        let (_title, content) =
+            extract_title_and_content("Demo ticket title\n\nsomething".to_string()).unwrap();
+        assert_eq!(content.unwrap(), "something");
+    }
+
+    #[test]
+    fn extract_title_and_content_test() {
+        let a = extract_title_and_content("Demo ticket title\n\nsomething".to_string()).unwrap();
+
+        assert_eq!(a.0, "Demo ticket title");
+        assert_eq!(a.1.unwrap(), "something");
+    }
+
+    #[test]
+    fn extract_title_and_content_test_with_three_newlines() {
+        let a = extract_title_and_content("Demo ticket title\n\n\nsomething".to_string()).unwrap();
+
+        assert_eq!(a.0, "Demo ticket title");
+        assert_eq!(a.1.unwrap(), "something");
+    }
+}

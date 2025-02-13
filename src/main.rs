@@ -3,14 +3,12 @@ use edit;
 use json_to_table::json_to_table;
 use serde::Serialize;
 use serde_json::json;
-use crate::Commands::CreateTicket;
 use crate::commands::RenderList;
 
 pub mod commands;
 pub mod response_types;
 pub mod utils;
 
-// mod response_types;
 
 #[derive(Parser)]
 #[command(version, about, long_about = None)]
@@ -36,8 +34,6 @@ enum Commands {
     },
     Tickets,
 }
-
-const URL: &'static str = "https://gitlab.com/api/v4/issues?assignee_id=4500276";
 
 #[derive(Debug)]
 pub struct App {
@@ -80,7 +76,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 let project = commands::projects::ProjectsCommand::new(app);
                 let project_list = project.list_projects().await?;
 
-
                 let res = project.render_list(project_list)?;
                 println!("{}", res);
                 Ok(())
@@ -94,13 +89,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
                 Ok(())
             }
             Commands::Login => {
-                let response = utils::client(URL, &token)
-                    .send()
-                    .await?
-                    .json::<Vec<response_types::GitLabIssue>>()
-                    .await?;
-
-                dbg!(response);
+                let login_command = commands::login::LoginCommand::new(app);
+                login_command.login().await?;
                 return Ok(());
             }
             Commands::CreateTicket {
